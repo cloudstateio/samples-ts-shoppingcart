@@ -1,0 +1,58 @@
+{
+  "name": "shopping-cart",
+  "version": "0.1.0",
+  "description": "Sample CloudState event sourced shopping cart application",
+  "keywords": [
+    "serverless",
+    "cloudstate",
+    "event-sourcing"
+  ],
+  "homepage": "https://github.com/cloudstateio/samples-ts-shoppingcart",
+  "bugs": {
+    "url": "https://github.com/cloudstateio/samples-ts-shoppingcart/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudstateio/samples-ts-shoppingcart.git",
+    "directory": "shopping-cart"
+  },
+  "dependencies": {
+    "@grpc/proto-loader": "^0.5.1",
+    "cloudstate": "0.0.3",
+    "grpc": "^1.22.2"
+  },
+  "devDependencies": {
+    "@types/google-protobuf": "^3.2.5",
+    "@typescript-eslint/eslint-plugin": "^2.31.0",
+    "@typescript-eslint/parser": "^2.31.0",
+    "chai": "^4.2.0",
+    "chalk": "^4.1.0",
+    "concurrently": "^4.1.0",
+    "escodegen": "^1.14.2",
+    "eslint": "^6.8.0",
+    "eslint-config-google": "^0.14.0",
+    "estraverse": "^5.1.0",
+    "jsdoc": "^3.6.4",
+    "mocha": "^7.2.0",
+    "rimraf": "^3.0.2",
+    "tmp": "^0.1.0",
+    "ts-loader": "^6.0.1",
+    "ts-protoc-gen": "^0.12.0",
+    "typescript": "^3.7.4",
+    "uglify-js": "^3.9.4"
+  },
+  "scripts": {
+    "clean": "rimraf build",
+    "compile:proto-desc": "compile-descriptor proto/com/example/shoppingcart/shoppingcart.proto",
+    "precompile:pb:js": "mkdirp build",
+    "compile:pb:js": "pbjs -t static-module -w commonjs -o build/proto.js proto/**/*.proto",
+    "precompile:pb:ts": "npm run compile:pb:js",
+    "compile:pb:ts": "pbts -o build/proto.d.ts build/proto.js",
+    "compile:ts": "tsc",
+    "build": "npm run compile:proto-desc && npm run compile:pb:ts && npm run compile:ts",
+    "pretest": "npm run build",
+    "test": "mocha",
+    "start": "node build/server.js"
+  }
+}

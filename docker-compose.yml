@@ -1,6 +1,19 @@
 version: "3.2"
 
 services:
+  inventory:
+    image: cloudstateio/cloudstate-proxy-dev-mode:0.5.1
+    environment:
+      USER_FUNCTION_HOST: inventory-impl
+      USER_FUNCTION_PORT: 8080
+    depends_on:
+      - inventory-impl
+    ports:
+      - "9001:9000"
+
+  inventory-impl:
+    image: lightbend-docker-registry.bintray.io/cloudstate-samples/inventory:latest
+
   shopping-cart:
     image: cloudstateio/cloudstate-proxy-dev-mode:0.5.1
     environment:

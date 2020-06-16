@@ -5,6 +5,12 @@ metadata:
   name: "shopping-routes"
 spec:
   http:
+  - name: "inventory-routes"
+    match:
+    - uri:
+        prefix: "/com.example.inventory.Inventory/"
+    route:
+      service: inventory
   - name: "shopping-routes"
     match:
     - uri:

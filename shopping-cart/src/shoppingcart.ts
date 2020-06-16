@@ -29,6 +29,7 @@ export const entity = new EventSourced(
 const pkg = "com.example.shoppingcart.persistence."
 const ItemAdded = entity.lookupType(pkg + "ItemAdded") as typeof domain.ItemAdded
 const ItemRemoved = entity.lookupType(pkg + "ItemRemoved") as typeof domain.ItemRemoved
+const CartStatusChanged = entity.lookupType(pkg + "CartStatusChanged") as typeof domain.CartStatusChanged
 const Cart = entity.lookupType(pkg + "Cart") as typeof domain.Cart
 
 /*
@@ -58,13 +59,16 @@ entity.setBehavior((cart: domain.Cart) => {
         commandHandlers: {
             AddItem: addItem,
             RemoveItem: removeItem,
+            SetStatus: setStatus,
+            ResetCartAfterPayment: resetCartAfterPayment,
             GetCart: getCart
         },
         // Event handlers. The name of the event corresponds to the (unqualified) name of the
         // persisted protobuf message.
         eventHandlers: {
             ItemAdded: itemAdded,
-            ItemRemoved: itemRemoved
+            ItemRemoved: itemRemoved,
+            CartStatusChanged: cartStatusChanged
         }
     }
 })
@@ -74,6 +78,10 @@ entity.setBehavior((cart: domain.Cart) => {
  */
 function addItem(addItem: api.AddLineItem, cart: domain.Cart, ctx): Empty {
     console.log("addItem", addItem)
+    // Check status
+    if (cart.status != domain.Cart.Status.SHOPPING) {
+      ctx.fail("Cannot remove items when status is " + domain.Cart.Status[cart.status]);
+    }
     // Validation:
     // Make sure that it is not possible to add negative quantities
     if (addItem.quantity < 1) {
@@ -101,6 +109,10 @@ function addItem(addItem: api.AddLineItem, cart: domain.Cart, ctx): Empty {
  */
 function removeItem(removeItem: api.RemoveLineItem, cart: domain.Cart, ctx): Empty {
     console.log("removeItem", removeItem)
+    // Check status
+    if (cart.status != domain.Cart.Status.SHOPPING) {
+      ctx.fail("Cannot remove items when status is " + domain.Cart.Status[cart.status]);
+    }
     // Validation:
     // Check that the item that we're removing actually exists.
     const existing = cart.items.find(item => {
@@ -123,12 +135,51 @@ function removeItem(removeItem: api.RemoveLineItem, cart: domain.Cart, ctx): Emp
 }
 
 /**
+ * Handler for set status commands.
+ */
+function setStatus(setStatus: api.SetCartStatus, cart: domain.Cart, ctx): Empty {
+    console.log("setStatus", setStatus)
+    const newStatus = toDomain(setStatus.status)
+    if (cart.status != newStatus) {
+        if (cart.status == domain.Cart.Status.SHOPPING && newStatus == domain.Cart.Status.WAITING_FOR_PAYMENT) {
+            ctx.fail("Invalid state change");
+        }
+        ctx.emit(CartStatusChanged.create({
+            status: newStatus
+        }))
+    }
+    return {}
+}
+
+/**
+ * Handler for reset cart after payment commands.
+ */
+function resetCartAfterPayment(reset: api.ResetShoppingCart, cart: domain.Cart, ctx): Empty {
+    console.log("resetCartAfterPayment", reset)
+
+    if (cart.status != domain.Cart.Status.WAITING_FOR_PAYMENT) {
+        ctx.fail("Cart is not in 'waiting for payment' state");
+    }
+    for (let item of cart.items) {
+        ctx.emit(ItemRemoved.create({
+            productId: item.productId
+        }))
+    }
+    ctx.emit(CartStatusChanged.create({
+        status: domain.Cart.Status.SHOPPING
+    }))
+    return {}
+}
+
+/**
  * Handler for get cart commands.
  */
-function getCart(request: api.GetShoppingCart, cart: domain.Cart): api.Cart {
+function getCart(request: api.GetShoppingCart, cart: domain.Cart): api.ICart {
     console.log("getCart", cart)
-    // Simply return the shopping cart as is.
-    return cart
+    return {
+        items: cart.items,
+        status: fromDomain(cart.status)
+    }
 }
 
 /**
@@ -167,4 +218,34 @@ function itemRemoved(removed: domain.ItemRemoved, cart: domain.Cart): domain.Car
 
     // And return the new state.
     return cart
+}
+
+/**
+ * Handler for status changed events.
+ */
+function cartStatusChanged(statusChanged: domain.CartStatusChanged, cart: domain.Cart): domain.Cart {
+    cart.status = statusChanged.status
+    return cart
+}
+
+function toDomain(status: api.Cart.Status): domain.Cart.Status {
+    switch (status) {
+        case api.Cart.Status.SHOPPING:
+            return domain.Cart.Status.SHOPPING
+        case api.Cart.Status.RESERVING:
+            return domain.Cart.Status.RESERVING
+        case api.Cart.Status.WAITING_FOR_PAYMENT:
+            return domain.Cart.Status.WAITING_FOR_PAYMENT
+    }
+}
+
+function fromDomain(status: domain.Cart.Status): api.Cart.Status {
+    switch (status) {
+        case domain.Cart.Status.SHOPPING:
+            return api.Cart.Status.SHOPPING
+        case domain.Cart.Status.RESERVING:
+            return api.Cart.Status.RESERVING
+        case domain.Cart.Status.WAITING_FOR_PAYMENT:
+            return api.Cart.Status.WAITING_FOR_PAYMENT
+    }
 }

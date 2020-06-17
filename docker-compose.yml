@@ -26,3 +26,19 @@ services:
 
   shopping-cart-impl:
     image: lightbend-docker-registry.bintray.io/cloudstate-samples/shopping-cart:latest
+
+  shopping-service:
+    image: cloudstateio/cloudstate-proxy-dev-mode:0.5.1
+    environment:
+      USER_FUNCTION_HOST: shopping-service-impl
+      USER_FUNCTION_PORT: 8080
+    depends_on:
+      - shopping-service-impl
+    ports:
+      - "9002:9000"
+
+  shopping-service-impl:
+    image: lightbend-docker-registry.bintray.io/cloudstate-samples/shopping-service:latest
+    environment:
+      SHOPPING_CART_CLIENT_ADDRESS: shopping-cart:9000
+      PRODUCT_INVENTORY_CLIENT_ADDRESS: inventory:9000

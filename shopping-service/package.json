@@ -1,0 +1,63 @@
+{
+  "name": "shopping-service",
+  "version": "0.1.0",
+  "description": "Sample CloudState event sourced shopping cart application",
+  "keywords": [
+    "serverless",
+    "cloudstate",
+    "event-sourcing"
+  ],
+  "homepage": "https://github.com/cloudstateio/samples-ts-shoppingcart",
+  "bugs": {
+    "url": "https://github.com/cloudstateio/samples-ts-shoppingcart/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloudstateio/samples-ts-shoppingcart.git",
+    "directory": "shopping-service"
+  },
+  "dependencies": {
+    "@grpc/proto-loader": "^0.5.1",
+    "cloudstate": "0.0.3",
+    "grpc": "^1.22.2"
+  },
+  "devDependencies": {
+    "@types/google-protobuf": "^3.2.5",
+    "@typescript-eslint/eslint-plugin": "^2.31.0",
+    "@typescript-eslint/parser": "^2.31.0",
+    "chalk": "^4.1.0",
+    "concurrently": "^4.1.0",
+    "escodegen": "^1.14.2",
+    "eslint": "^6.8.0",
+    "eslint-config-google": "^0.14.0",
+    "estraverse": "^5.1.0",
+    "grpc-tools": "^1.8.1",
+    "jsdoc": "^3.6.4",
+    "patch-package": "^6.2.2",
+    "rimraf": "^3.0.2",
+    "semver": "^7.3.2",
+    "tmp": "^0.1.0",
+    "ts-loader": "^6.0.1",
+    "ts-protoc-gen": "^0.12.0",
+    "typescript": "^3.7.4",
+    "uglify-js": "^3.9.4"
+  },
+  "scripts": {
+    "postinstall": "patch-package",
+    "clean": "rimraf build",
+    "compile:protoc:cloudstate": "grpc_tools_node_protoc --proto_path=node_modules/cloudstate/proto --js_out=import_style=commonjs,binary:build/proto --ts_out=build/proto node_modules/cloudstate/proto/google/api/http.proto node_modules/cloudstate/proto/google/api/httpbody.proto node_modules/cloudstate/proto/google/api/annotations.proto node_modules/cloudstate/proto/cloudstate/entity_key.proto node_modules/cloudstate/proto/cloudstate/eventing.proto",
+    "compile:protoc:inventory": "grpc_tools_node_protoc --proto_path=node_modules/cloudstate/proto --proto_path=proto --js_out=import_style=commonjs,binary:build/proto --ts_out=service=grpc-node:build/proto --grpc_out=build/proto proto/com/example/inventory/inventory.proto",
+    "compile:protoc:shoppingcart": "grpc_tools_node_protoc --proto_path=node_modules/cloudstate/proto --proto_path=proto --js_out=import_style=commonjs,binary:build/proto --ts_out=service=grpc-node:build/proto --grpc_out=build/proto proto/com/example/shoppingcart/shoppingcart.proto",
+    "precompile:protoc": "mkdirp build/proto",
+    "compile:protoc": "npm run compile:protoc:cloudstate && npm run compile:protoc:inventory && npm run compile:protoc:shoppingcart",
+    "compile:proto-desc": "compile-descriptor proto/com/example/shoppingservice/shoppingservice.proto",
+    "precompile:pb:js": "mkdirp build",
+    "compile:pb:js": "pbjs -t static-module -w commonjs -o build/proto.js proto/**/*.proto",
+    "precompile:pb:ts": "npm run compile:pb:js",
+    "compile:pb:ts": "pbts -o build/proto.d.ts build/proto.js",
+    "compile:ts": "tsc",
+    "build": "npm run compile:protoc && npm run compile:proto-desc && npm run compile:pb:ts && npm run compile:ts",
+    "start": "node build/server.js"
+  }
+}
